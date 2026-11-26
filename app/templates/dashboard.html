@@ -53,6 +53,35 @@
 
 {% if has_permission("view_account_details") %}
 <section class="panel welcome">
+  <div class="eyebrow">SHARED PARTICIPANT QR</div>
+  <h2>Bank account details submission</h2>
+  <p>
+    Display this QR code for participants to scan with their phones.
+    It opens the secure bank-details submission form.
+  </p>
+
+  <div style="margin: 20px 0; text-align: center;">
+    <img
+      src="{{ url_for('bank_details.general_account_details_qr') }}"
+      alt="QR code for the participant bank-details submission form"
+      style="width: 240px; max-width: 100%; height: auto; background: white; padding: 12px; border-radius: 8px;"
+    >
+  </div>
+
+  <a class="button button-primary"
+     href="{{ url_for('bank_details.general_account_details_qr', download=1) }}">
+    Download general QR code
+  </a>
+
+  <p class="muted">
+    You can print the downloaded image and display it at the event.
+    Participants will still need their Participant ID and private submission code.
+  </p>
+</section>
+{% endif %}
+
+{% if has_permission("view_account_details") %}
+<section class="panel welcome">
   <div class="eyebrow">PARTICIPANT SUBMISSIONS</div>
   <h2>Submitted bank details</h2>
   <p>View bank details submitted by registered participants.</p>

@@ -1,11 +1,13 @@
 import hashlib
+import io
 import hmac
 import os
 import re
 from datetime import datetime, timezone
 
 from cryptography.fernet import Fernet
-from flask import (Blueprint, flash, redirect, render_template, request, url_for, make_response, current_app)
+import qrcode
+from flask import (Blueprint, flash, redirect, render_template, request, url_for, make_response, current_app, send_file)
 from flask_login import login_required
 from sqlalchemy import select, func, delete
 from sqlalchemy.exc import IntegrityError
@@ -219,4 +221,40 @@ def view_submitted_account_details():
     response.headers["Expires"] = "0"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@bank_details_bp.route("/admin/account-details/general-qr.png")
+@login_required
+@permission_required("view_account_details")
+def general_account_details_qr():
+    public_url = os.environ.get(
+        "PUBLIC_BASE_URL",
+        "https://new-event-system.onrender.com",
+    ).rstrip("/")
+
+    form_url = f"{public_url}/account-details"
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=12,
+        border=4,
+    )
+    qr.add_data(form_url)
+    qr.make(fit=True)
+
+    image = qr.make_image(fill_color="#102D46", back_color="white")
+
+    image_buffer = io.BytesIO()
+    image.save(image_buffer, format="PNG")
+    image_buffer.seek(0)
+
+    response = send_file(
+        image_buffer,
+        mimetype="image/png",
+        download_name="event-bank-details-qr.png",
+        as_attachment=request.args.get("download") == "1",
+    )
+    response.headers["Cache-Control"] = "no-store"
     return response
