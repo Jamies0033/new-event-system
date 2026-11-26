@@ -1110,9 +1110,11 @@ th {
   flex-direction: column;
   width: 100%;
   max-width: 340px;
-  aspect-ratio: 105 / 148;
+  height: auto;
+  min-height: 440px;
+  aspect-ratio: auto;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   padding: 18px 17px 13px;
   color: #18364b;
   background: #fff;
@@ -1221,8 +1223,9 @@ th {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: auto 0 10px;
+  margin: 12px 0 10px;
   padding: 9px;
+  flex-shrink: 0;
   background: #f2f7f9;
   border: 1px solid #dce8ed;
   border-radius: 9px;
@@ -1305,8 +1308,11 @@ th {
     display: flex !important;
     width: 105mm !important;
     max-width: 105mm !important;
-    height: 148mm !important;
+    height: auto !important;
+    min-height: 148mm !important;
+    max-height: none !important;
     aspect-ratio: auto !important;
+    overflow: visible !important;
     margin: 0 !important;
     padding: 7mm 6mm 4mm !important;
     border: none !important;
@@ -1330,6 +1336,7 @@ th {
 /* Private participant account-submission code */
 .pass-submission-code {
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
   align-items: center;
   gap: 4px;
