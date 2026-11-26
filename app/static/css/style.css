@@ -1297,6 +1297,7 @@ th {
   }
 }
 
+
 /* Print an individual guest pass at A6 portrait size */
 @media print {
   @page {
@@ -1304,32 +1305,73 @@ th {
     margin: 0;
   }
 
+  .id-card-item.print-selected {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
   .id-card-item.print-selected .guest-pass {
     display: flex !important;
+    flex-direction: column !important;
     width: 105mm !important;
+    min-width: 105mm !important;
     max-width: 105mm !important;
-    height: auto !important;
+    height: 148mm !important;
     min-height: 148mm !important;
-    max-height: none !important;
+    max-height: 148mm !important;
     aspect-ratio: auto !important;
-    overflow: visible !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
     margin: 0 !important;
-    padding: 7mm 6mm 4mm !important;
+    padding: 5mm 5mm 3mm !important;
+    gap: 0 !important;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
+  .id-card-item.print-selected .guest-pass > * {
+    min-height: 0 !important;
+  }
+
   .id-card-item.print-selected .pass-heading h2 {
-    font-size: 17pt !important;
+    font-size: 15pt !important;
+  }
+
+  .id-card-item.print-selected .pass-qr-section {
+    margin: 4px 0 !important;
+    padding: 5px !important;
   }
 
   .id-card-item.print-selected .pass-qr-section .id-card-qr {
-    width: 30mm !important;
-    height: 30mm !important;
-    flex-basis: 30mm !important;
+    width: 25mm !important;
+    height: 25mm !important;
+    flex-basis: 25mm !important;
+  }
+
+  .id-card-item.print-selected .pass-submission-code {
+    flex-shrink: 0 !important;
+    gap: 2px !important;
+    margin: 0 0 5px !important;
+    padding: 4px 6px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .id-card-item.print-selected .pass-submission-code span {
+    font-size: 6pt !important;
+  }
+
+  .id-card-item.print-selected .pass-submission-code strong {
+    font-size: 8pt !important;
+  }
+
+  .id-card-item.print-selected .pass-submission-code small {
+    font-size: 5.5pt !important;
   }
 }
 
