@@ -1,0 +1,11 @@
+
+# Deployment security
+.env
+.env.*
+!.env.example
+instance/
+backups/
+__pycache__/
+*.py[cod]
+*.backup
+*.before-*

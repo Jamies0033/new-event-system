@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Event Registration{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">EVENT OPERATIONS / OVERVIEW</div>
+    <h1>Event management</h1>
+    <p class="muted">
+      Participant registration, admission and daily arrival records.
+    </p>
+  </div>
+
+  {% if has_permission("manage_participants") %}
+  <a class="button button-primary"
+     href="{{ url_for('participants.new_participant') }}">
+    + Register participant
+  </a>
+  {% endif %}
+</div>
+
+<div class="stats">
+  {% if has_permission("manage_participants") %}
+  <section class="panel stat">
+    <span class="muted">Active participants</span>
+    <strong>{{ total }}</strong>
+    <span class="muted">Registered participants</span>
+  </section>
+  {% endif %}
+
+  {% if has_permission("view_attendance") %}
+  <section class="panel stat">
+    <span class="muted">Arrivals today</span>
+    <strong>{{ arrivals_today }}</strong>
+    <span class="muted">Successful arrival scans</span>
+  </section>
+  {% endif %}
+</div>
+
+{% if has_permission("manage_participants") %}
+<section class="panel welcome">
+  <div class="eyebrow">PARTICIPANT MANAGEMENT</div>
+  <h2>Get your participants ready.</h2>
+  <p>
+    Register participants, review their records and prepare their admission passes.
+  </p>
+  <a href="{{ url_for('participants.participant_list') }}" class="text-link">
+    View participant register →
+  </a>
+</section>
+{% endif %}
+
+{% if has_permission("view_account_details") %}
+<section class="panel welcome">
+  <div class="eyebrow">PARTICIPANT SUBMISSIONS</div>
+  <h2>Submitted bank details</h2>
+  <p>View bank details submitted by registered participants.</p>
+  <a href="{{ url_for('bank_details.view_submitted_account_details') }}"
+     class="text-link">
+    View submitted account details →
+  </a>
+</section>
+{% endif %}
+
+{% if has_permission("manage_participants")
+   and has_permission("view_attendance")
+   and has_permission("export_account_details")
+   and has_permission("export_event_workbook") %}
+<section class="panel export-panel">
+  <div class="eyebrow">REPORTS / DATA MANAGEMENT</div>
+  <h2>Export event records</h2>
+  <p class="muted">
+    Download participant records, arrival attendance and submitted bank details
+    together in one Excel workbook.
+  </p>
+
+  <div class="export-list">
+    <div class="export-item">
+      <div class="export-icon" aria-hidden="true">XLSX</div>
+      <div class="export-details">
+        <h3>Complete event workbook</h3>
+        <p class="muted">
+          Three sheets covering participants, attendance and account details.
+        </p>
+      </div>
+      <a class="button button-primary"
+         href="{{ url_for('reports.export_event_workbook') }}">
+        Download workbook
+      </a>
+    </div>
+  </div>
+
+  <p class="export-note muted">
+    Downloads are permission-restricted. Exporting records does not delete them.
+  </p>
+</section>
+{% endif %}
+{% endblock %}

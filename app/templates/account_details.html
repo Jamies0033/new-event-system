@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Account Details{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">GUEST INFORMATION</div>
+    <h1>Submit your account details</h1>
+    <p class="muted">
+      Enter the Participant ID and private submission code printed on your
+      admission pass.
+    </p>
+  </div>
+</div>
+
+<form method="post" class="panel form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <label for="participant_code">Participant ID *</label>
+  <input
+    id="participant_code"
+    name="participant_code"
+    required
+    maxlength="50"
+    placeholder="e.g. GUEST-0001"
+    autocomplete="off"
+  >
+
+  <label for="submission_code">Private submission code *</label>
+  <input
+    id="submission_code"
+    name="submission_code"
+    required
+    minlength="6"
+    maxlength="6"
+    pattern="[A-HJ-NP-Z2-9]{6}"
+    title="Enter the six-character code shown on your admission pass."
+    autocomplete="off"
+    autocapitalize="characters"
+  >
+
+  <label for="bank_name">Bank name *</label>
+  <input
+    id="bank_name"
+    name="bank_name"
+    required
+    maxlength="120"
+    placeholder="Enter your bank name"
+  >
+
+  <label for="account_name">Account name *</label>
+  <input
+    id="account_name"
+    name="account_name"
+    required
+    maxlength="160"
+    placeholder="Enter the account holder's name"
+  >
+
+  <label for="account_number">Account number *</label>
+  <input
+    id="account_number"
+    name="account_number"
+    required
+    inputmode="numeric"
+    pattern="[0-9]{6,20}"
+    minlength="6"
+    maxlength="20"
+    placeholder="Enter your account number"
+  >
+
+  <p class="muted">
+    Your account number is encrypted before storage. Account details can only
+    be accessed by authorised event staff.
+  </p>
+
+  <div class="actions">
+    <button class="button button-primary" type="submit">
+      Submit account details
+    </button>
+  </div>
+</form>
+{% endblock %}

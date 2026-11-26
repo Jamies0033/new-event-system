@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Event Staff Administration{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">EVENT CONTROL CENTRE</span>
+    <h1>Event Staff Administration</h1>
+    <p class="muted">Create staff accounts and manage their access to the event system.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Create an account</h2>
+  <p class="muted">Use a unique username and a password of at least 12 characters.</p>
+
+  <form class="form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="create">
+
+    <div class="form-grid">
+      <div>
+        <label for="username">Username</label>
+        <input id="username" name="username" maxlength="80" required autocomplete="off">
+      </div>
+      <div>
+        <label for="password">Temporary password</label>
+        <input id="password" name="password" type="password" minlength="12"
+               required autocomplete="new-password">
+      </div>
+    </div>
+
+    <label for="new-role">Access level</label>
+    <select id="new-role" name="role" required>
+      <option value="staff">Event Staff — event operations</option>
+      <option value="admin">Administrator — manage accounts</option>
+    </select>
+
+    <div class="actions">
+      <button class="button button-primary" type="submit">Create account</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel" style="margin-top: 24px;">
+  <h2>Existing accounts</h2>
+  <p class="muted">Manage account status, roles and individual permissions.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Access</th>
+          <th>Status</th>
+          <th>Manage account</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in staff %}
+        <tr>
+          <td>
+            <strong>{{ user.username }}</strong>
+            {% if user.id == current_user.id %}
+              <span class="muted">(you)</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" class="inline-admin-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="change_role">
+              <input type="hidden" name="user_id" value="{{ user.id }}">
+              <select name="role" aria-label="Role for {{ user.username }}">
+                <option value="staff" {% if user.role == 'staff' %}selected{% endif %}>Event Staff</option>
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrator</option>
+              </select>
+              <button class="button button-secondary" type="submit">Save role</button>
+            </form>
+          </td>
+          <td>
+            {% if user.is_active %}
+              <span class="status-active">Active</span>
+            {% else %}
+              <span class="status-inactive">Deactivated</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="toggle_active">
+              <input type="hidden" name="user_id" value="{{ user.id }}">
+              {% if user.is_active %}
+                <button class="button button-secondary" type="submit"
+                  {% if user.id == current_user.id %}disabled{% endif %}>
+                  Deactivate
+                </button>
+              {% else %}
+                <button class="button button-primary" type="submit">Activate</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+
+        {% if user.role == 'staff' %}
+        <tr>
+          <td colspan="4">
+            <form method="post" class="form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="save_permissions">
+              <input type="hidden" name="user_id" value="{{ user.id }}">
+
+              <strong>Permissions for {{ user.username }}</strong>
+
+              <div class="form-grid">
+                {% for key, description in available_permissions.items() %}
+                <label>
+                  <input
+                    type="checkbox"
+                    name="permissions"
+                    value="{{ key }}"
+                    {% if key in user_permissions[user.id] %}checked{% endif %}
+                  >
+                  {{ description }}
+                </label>
+                {% endfor %}
+              </div>
+
+              <div class="actions">
+                <button class="button button-primary" type="submit">
+                  Save permissions
+                </button>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">
+            <span class="muted">Administrators automatically have all permissions.</span>
+          </td>
+        </tr>
+        {% endif %}
+
+        {% else %}
+        <tr>
+          <td colspan="4">No staff accounts found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
