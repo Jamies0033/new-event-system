@@ -28,8 +28,7 @@ bank_details_bp = Blueprint("bank_details", __name__)
 @bank_details_bp.route("/account-details", methods=["GET", "POST"])
 def submit_account_details():
     if request.method == "POST":
-        participant_code = request.form.get("participant_code", "").strip().upper()
-        submission_code = request.form.get("submission_code", "").strip().upper()
+        participant_id = request.form.get("participant_id", "").strip().upper()
         bank_name = request.form.get("bank_name", "").strip()
         account_name = request.form.get("account_name", "").strip()
         account_number = request.form.get("account_number", "").strip()
@@ -46,7 +45,7 @@ def submit_account_details():
             ).hexdigest()
 
         attempt_key = make_attempt_key(
-            f"participant:{ip_address}:{participant_code}"
+            f"participant:{ip_address}:{participant_id}"
         )
         ip_attempt_key = make_attempt_key(f"ip:{ip_address}")
 
@@ -71,28 +70,34 @@ def submit_account_details():
                 "error",
             )
             return render_template("account_details.html"), 429
-        participant = db.session.scalar(
-            select(Participant).where(
-                Participant.participant_code == participant_code,
-                Participant.is_active.is_(True),
-            )
-        )
-
-        credential = None
-        if participant:
-            credential = db.session.scalar(
-                select(ParticipantSubmissionCredential).where(
-                    ParticipantSubmissionCredential.participant_id == participant.id,
-                    ParticipantSubmissionCredential.is_active.is_(True),
-                )
-            )
-
         submitted_hash = hashlib.sha256(
-            submission_code.encode()
+            participant_id.encode()
         ).hexdigest()
 
+        matching_credentials = db.session.scalars(
+            select(ParticipantSubmissionCredential).where(
+                ParticipantSubmissionCredential.code_hash == submitted_hash,
+                ParticipantSubmissionCredential.is_active.is_(True),
+            ).limit(2)
+        ).all()
+
+        credential = (
+            matching_credentials[0]
+            if len(matching_credentials) == 1
+            else None
+        )
+
+        participant = (
+            db.session.get(Participant, credential.participant_id)
+            if credential is not None
+            else None
+        )
+
         valid_code = (
-            credential is not None
+            bool(re.fullmatch(r"[A-HJ-NP-Z2-9]{6}", participant_id))
+            and credential is not None
+            and participant is not None
+            and participant.is_active
             and hmac.compare_digest(credential.code_hash, submitted_hash)
         )
 
@@ -110,8 +115,8 @@ def submit_account_details():
             db.session.commit()
 
             flash(
-                "We could not verify your details. Check your Participant ID "
-                "and private code, or contact event staff.",
+                "We could not verify your Participant ID. Check the six-character "
+                "ID printed on your admission pass, or contact event staff.",
                 "error",
             )
             return render_template("account_details.html"), 400

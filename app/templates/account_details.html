@@ -8,8 +8,7 @@
     <div class="eyebrow">GUEST INFORMATION</div>
     <h1>Submit your account details</h1>
     <p class="muted">
-      Enter the Participant ID and private submission code printed on your
-      admission pass.
+      Enter the six-character Participant ID printed on your admission pass.
     </p>
   </div>
 </div>
@@ -17,27 +16,19 @@
 <form method="post" class="panel form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-  <label for="participant_code">Participant ID *</label>
+  <label for="participant_id">Participant ID *</label>
   <input
-    id="participant_code"
-    name="participant_code"
-    required
-    maxlength="50"
-    placeholder="e.g. GUEST-0001"
-    autocomplete="off"
-  >
-
-  <label for="submission_code">Private submission code *</label>
-  <input
-    id="submission_code"
-    name="submission_code"
+    id="participant_id"
+    name="participant_id"
     required
     minlength="6"
     maxlength="6"
     pattern="[A-HJ-NP-Z2-9]{6}"
-    title="Enter the six-character code shown on your admission pass."
+    title="Enter the six-character Participant ID printed on your admission pass."
+    placeholder="Enter your six-character Participant ID"
     autocomplete="off"
     autocapitalize="characters"
+    spellcheck="false"
   >
 
   <label for="bank_name">Bank name *</label>

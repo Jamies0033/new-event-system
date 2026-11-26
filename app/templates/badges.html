@@ -46,7 +46,11 @@
 
         <div class="pass-participant-code">
           <span>PARTICIPANT ID</span>
-          <strong>{{ participant.participant_code }}</strong>
+          {% if participant.id in submission_codes %}
+            <strong>{{ submission_codes[participant.id] }}</strong>
+          {% else %}
+            <strong>NOT YET GENERATED</strong>
+          {% endif %}
         </div>
       </section>
 
@@ -58,17 +62,6 @@
         >
         <strong>YOUR PERSONAL ATTENDANCE QR</strong>
         <span>Present this code at the entrance for attendance scanning.</span>
-      </section>
-
-      <section class="pass-submission-code">
-        <span>PRIVATE ACCOUNT SUBMISSION CODE</span>
-        {% if participant.id in submission_codes %}
-          <strong>{{ submission_codes[participant.id] }}</strong>
-          <small>Keep this code private. Use it with your Participant ID when submitting bank details.</small>
-        {% else %}
-          <strong>NOT YET GENERATED</strong>
-          <small>Contact event staff for assistance.</small>
-        {% endif %}
       </section>
 
       <section class="pass-event-details">
