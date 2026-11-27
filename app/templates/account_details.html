@@ -8,7 +8,7 @@
     <div class="eyebrow">GUEST INFORMATION</div>
     <h1>Submit your account details</h1>
     <p class="muted">
-      Enter the six-character Participant ID printed on your admission pass.
+      Please provide your personal and bank details below.
     </p>
   </div>
 </div>
@@ -16,22 +16,37 @@
 <form method="post" class="panel form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-  <label for="participant_id">Participant ID *</label>
+  <label for="full_name">Full Name *</label>
   <input
-    id="participant_id"
-    name="participant_id"
+    id="full_name"
+    name="full_name"
     required
-    minlength="6"
-    maxlength="6"
-    pattern="[A-HJ-NP-Z2-9]{6}"
-    title="Enter the six-character Participant ID printed on your admission pass."
-    placeholder="Enter your six-character Participant ID"
-    autocomplete="off"
-    autocapitalize="characters"
-    spellcheck="false"
+    maxlength="160"
+    placeholder="Enter your full name"
+    autocomplete="name"
   >
 
-  <label for="bank_name">Bank name *</label>
+  <label for="state">State *</label>
+  <input
+    id="state"
+    name="state"
+    required
+    maxlength="100"
+    placeholder="Enter your state"
+    autocomplete="address-level1"
+  >
+
+  <label for="organization">Organization *</label>
+  <input
+    id="organization"
+    name="organization"
+    required
+    maxlength="160"
+    placeholder="Enter your organization"
+    autocomplete="organization"
+  >
+
+  <label for="bank_name">Bank Name *</label>
   <input
     id="bank_name"
     name="bank_name"
@@ -40,7 +55,7 @@
     placeholder="Enter your bank name"
   >
 
-  <label for="account_name">Account name *</label>
+  <label for="account_name">Account Name *</label>
   <input
     id="account_name"
     name="account_name"
@@ -49,7 +64,7 @@
     placeholder="Enter the account holder's name"
   >
 
-  <label for="account_number">Account number *</label>
+  <label for="account_number">Account Number *</label>
   <input
     id="account_number"
     name="account_number"

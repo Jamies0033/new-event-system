@@ -17,8 +17,10 @@ from app.models import (
     AttendanceSession,
     Participant,
     ParticipantAccountDetails,
+    BankAccountSubmission,
     db,
 )
+
 from app.permissions import permission_required
 
 
@@ -196,35 +198,65 @@ def export_event_workbook():
     account_sheet = workbook.create_sheet("Account Details")
 
     account_sheet.append([
-        "Participant ID",
+        "Full Name",
+        "State",
+        "Organization",
         "Bank Name",
         "Account Name",
         "Account Number",
+        "Submission Date",
     ])
 
-    account_records = db.session.execute(
-        select(ParticipantAccountDetails, Participant)
-        .join(
-            Participant,
-            Participant.id == ParticipantAccountDetails.participant_id,
+    # New independent submissions
+    new_records = db.session.scalars(
+        select(BankAccountSubmission).order_by(
+            BankAccountSubmission.created_at.asc()
         )
-        .order_by(Participant.participant_code.asc())
     ).all()
 
-    for details, participant in account_records:
+    for details in new_records:
         try:
             account_number = cipher.decrypt(
                 details.account_number_encrypted.encode()
             ).decode()
         except Exception:
-            # Do not silently export incomplete or corrupted financial data.
             abort(500, description="An account record could not be decrypted.")
 
         account_sheet.append([
-            safe_cell(participant.participant_code),
+            safe_cell(details.full_name),
+            safe_cell(details.state),
+            safe_cell(details.organization),
             safe_cell(details.bank_name),
             safe_cell(details.account_name),
             safe_cell(account_number),
+            local_datetime(details.created_at),
+        ])
+
+    # Retain historical participant-linked submissions
+    old_records = db.session.execute(
+        select(ParticipantAccountDetails, Participant)
+        .join(
+            Participant,
+            Participant.id == ParticipantAccountDetails.participant_id,
+        )
+    ).all()
+
+    for details, participant in old_records:
+        try:
+            account_number = cipher.decrypt(
+                details.account_number_encrypted.encode()
+            ).decode()
+        except Exception:
+            abort(500, description="An account record could not be decrypted.")
+
+        account_sheet.append([
+            safe_cell(participant.full_name),
+            "",
+            safe_cell(participant.organization or ""),
+            safe_cell(details.bank_name),
+            safe_cell(details.account_name),
+            safe_cell(account_number),
+            local_datetime(details.created_at),
         ])
 
     for sheet in workbook.worksheets:

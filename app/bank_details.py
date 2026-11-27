@@ -1,26 +1,34 @@
 import hashlib
-import io
 import hmac
+import io
 import os
 import re
 from datetime import datetime, timezone
 
 from cryptography.fernet import Fernet
 import qrcode
-from flask import (Blueprint, flash, redirect, render_template, request, url_for, make_response, current_app, send_file)
+from flask import (
+    Blueprint,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+    make_response,
+    current_app,
+)
 from flask_login import login_required
 from sqlalchemy import select, func, delete
-from sqlalchemy.exc import IntegrityError
-
-from app.permissions import permission_required
 
 from app.models import (
+    BankAccountSubmission,
     Participant,
     ParticipantAccountDetails,
-    ParticipantSubmissionCredential,
     BankSubmissionAttempt,
     db,
 )
+from app.permissions import permission_required
+
 
 bank_details_bp = Blueprint("bank_details", __name__)
 
@@ -28,155 +36,97 @@ bank_details_bp = Blueprint("bank_details", __name__)
 @bank_details_bp.route("/account-details", methods=["GET", "POST"])
 def submit_account_details():
     if request.method == "POST":
-        participant_id = request.form.get("participant_id", "").strip().upper()
-        bank_name = request.form.get("bank_name", "").strip()
-        account_name = request.form.get("account_name", "").strip()
-        account_number = request.form.get("account_number", "").strip()
-
         now = int(datetime.now(timezone.utc).timestamp())
-        secret = current_app.config["SECRET_KEY"]
+
+        secret = str(current_app.config["SECRET_KEY"]).encode()
         ip_address = request.remote_addr or "unknown"
 
-        def make_attempt_key(identity):
-            return hmac.new(
-                secret.encode(),
-                identity.encode(),
-                hashlib.sha256,
-            ).hexdigest()
-
-        attempt_key = make_attempt_key(
-            f"participant:{ip_address}:{participant_id}"
-        )
-        ip_attempt_key = make_attempt_key(f"ip:{ip_address}")
+        ip_attempt_key = hmac.new(
+            secret,
+            f"ip:{ip_address}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
 
         recent_attempts = db.session.scalar(
-            select(func.count(BankSubmissionAttempt.id)).where(
-                BankSubmissionAttempt.attempt_key == attempt_key,
-                BankSubmissionAttempt.attempted_at >= now - 900,
-            )
-        ) or 0
-
-        ip_recent_attempts = db.session.scalar(
-            select(func.count(BankSubmissionAttempt.id)).where(
+            select(func.count())
+            .select_from(BankSubmissionAttempt)
+            .where(
                 BankSubmissionAttempt.attempt_key == ip_attempt_key,
                 BankSubmissionAttempt.attempted_at >= now - 900,
             )
         ) or 0
 
-        if recent_attempts >= 5 or ip_recent_attempts >= 20:
+        if recent_attempts >= 20:
             flash(
-                "Too many unsuccessful attempts. Please wait 15 minutes "
-                "or contact event staff.",
+                "Too many unsuccessful attempts. Please try again later.",
                 "error",
             )
             return render_template("account_details.html"), 429
-        submitted_hash = hashlib.sha256(
-            participant_id.encode()
-        ).hexdigest()
 
-        matching_credentials = db.session.scalars(
-            select(ParticipantSubmissionCredential).where(
-                ParticipantSubmissionCredential.code_hash == submitted_hash,
-                ParticipantSubmissionCredential.is_active.is_(True),
-            ).limit(2)
-        ).all()
-
-        credential = (
-            matching_credentials[0]
-            if len(matching_credentials) == 1
-            else None
-        )
-
-        participant = (
-            db.session.get(Participant, credential.participant_id)
-            if credential is not None
-            else None
-        )
-
-        valid_code = (
-            bool(re.fullmatch(r"[A-HJ-NP-Z2-9]{6}", participant_id))
-            and credential is not None
-            and participant is not None
-            and participant.is_active
-            and hmac.compare_digest(credential.code_hash, submitted_hash)
-        )
-
-        if not valid_code:
-            db.session.add_all([
-                BankSubmissionAttempt(
-                    attempt_key=attempt_key,
-                    attempted_at=now,
-                ),
+        def reject(message):
+            db.session.add(
                 BankSubmissionAttempt(
                     attempt_key=ip_attempt_key,
                     attempted_at=now,
-                ),
-            ])
+                )
+            )
             db.session.commit()
-
-            flash(
-                "We could not verify your Participant ID. Check the six-character "
-                "ID printed on your admission pass, or contact event staff.",
-                "error",
-            )
+            flash(message, "error")
             return render_template("account_details.html"), 400
-        db.session.execute(
-            delete(BankSubmissionAttempt).where(
-                BankSubmissionAttempt.attempt_key == attempt_key
-            )
-        )
-        db.session.commit()
+
+        full_name = request.form.get("full_name", "").strip()
+        state = request.form.get("state", "").strip()
+        organization = request.form.get("organization", "").strip()
+        bank_name = request.form.get("bank_name", "").strip()
+        account_name = request.form.get("account_name", "").strip()
+        account_number = request.form.get("account_number", "").strip()
+
+        if not full_name or len(full_name) > 160:
+            return reject("Enter a valid full name.")
+
+        if not state or len(state) > 100:
+            return reject("Enter a valid state.")
+
+        if not organization or len(organization) > 160:
+            return reject("Enter a valid organization.")
 
         if not bank_name or len(bank_name) > 120:
-            flash("Enter a valid bank name.", "error")
-            return render_template("account_details.html"), 400
+            return reject("Enter a valid bank name.")
 
         if not account_name or len(account_name) > 160:
-            flash("Enter a valid account name.", "error")
-            return render_template("account_details.html"), 400
+            return reject("Enter a valid account name.")
 
         if not re.fullmatch(r"[0-9]{6,20}", account_number):
-            flash("Enter an account number containing 6 to 20 digits.", "error")
-            return render_template("account_details.html"), 400
+            return reject(
+                "Enter an account number containing 6 to 20 digits."
+            )
 
         encryption_key = os.environ.get("BANK_ENCRYPTION_KEY")
         if not encryption_key:
             raise RuntimeError("Bank encryption key is not configured.")
 
-        if db.session.scalar(
-            select(ParticipantAccountDetails.id).where(
-                ParticipantAccountDetails.participant_id == participant.id
-            )
-        ):
-            flash(
-                "Account details have already been submitted. Contact event "
-                "staff if a correction is required.",
-                "error",
-            )
-            return render_template("account_details.html"), 409
-
         encrypted_number = Fernet(encryption_key.encode()).encrypt(
             account_number.encode()
         ).decode()
 
-        details = ParticipantAccountDetails(
-            participant_id=participant.id,
+        details = BankAccountSubmission(
+            full_name=full_name,
+            state=state,
+            organization=organization,
             bank_name=bank_name,
             account_name=account_name,
             account_number_encrypted=encrypted_number,
         )
 
-        try:
-            db.session.add(details)
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            flash(
-                "Account details have already been submitted. Contact event "
-                "staff if a correction is required.",
-                "error",
+        db.session.add(details)
+
+        db.session.execute(
+            delete(BankSubmissionAttempt).where(
+                BankSubmissionAttempt.attempt_key == ip_attempt_key
             )
-            return render_template("account_details.html"), 409
+        )
+
+        db.session.commit()
 
         flash(
             "Your account details have been submitted successfully.",
@@ -185,8 +135,6 @@ def submit_account_details():
         return redirect(url_for("bank_details.submit_account_details"))
 
     return render_template("account_details.html")
-
-
 
 
 @bank_details_bp.route("/admin/account-details")
@@ -198,18 +146,20 @@ def view_submitted_account_details():
         raise RuntimeError("Bank encryption key is not configured.")
 
     cipher = Fernet(encryption_key.encode())
+    submissions = []
 
-    records = db.session.execute(
-        select(ParticipantAccountDetails, Participant)
-        .join(Participant, Participant.id == ParticipantAccountDetails.participant_id)
-        .order_by(ParticipantAccountDetails.created_at.desc())
+    # New independent submissions
+    new_records = db.session.scalars(
+        select(BankAccountSubmission).order_by(
+            BankAccountSubmission.created_at.desc()
+        )
     ).all()
 
-    submissions = []
-    for details, participant in records:
+    for details in new_records:
         submissions.append({
-            "participant_code": participant.participant_code,
-            "full_name": participant.full_name,
+            "full_name": details.full_name,
+            "state": details.state,
+            "organization": details.organization,
             "bank_name": details.bank_name,
             "account_name": details.account_name,
             "account_number": cipher.decrypt(
@@ -217,6 +167,30 @@ def view_submitted_account_details():
             ).decode(),
             "submitted_at": details.created_at,
         })
+
+    # Preserve visibility of previously submitted participant-linked records
+    old_records = db.session.execute(
+        select(ParticipantAccountDetails, Participant)
+        .join(Participant, Participant.id == ParticipantAccountDetails.participant_id)
+    ).all()
+
+    for details, participant in old_records:
+        submissions.append({
+            "full_name": participant.full_name,
+            "state": "",
+            "organization": participant.organization or "",
+            "bank_name": details.bank_name,
+            "account_name": details.account_name,
+            "account_number": cipher.decrypt(
+                details.account_number_encrypted.encode()
+            ).decode(),
+            "submitted_at": details.created_at,
+        })
+
+    submissions.sort(
+        key=lambda item: item["submitted_at"],
+        reverse=True,
+    )
 
     response = make_response(
         render_template("account_details_list.html", submissions=submissions)
@@ -226,8 +200,8 @@ def view_submitted_account_details():
     response.headers["Expires"] = "0"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
-    return response
 
+    return response
 
 @bank_details_bp.route("/admin/account-details/general-qr.png")
 @login_required

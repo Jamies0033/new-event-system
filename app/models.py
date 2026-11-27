@@ -201,3 +201,18 @@ class BankSubmissionAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     attempt_key = db.Column(db.String(64), nullable=False, index=True)
     attempted_at = db.Column(db.Integer, nullable=False, index=True)
+class BankAccountSubmission(db.Model):
+    __tablename__ = "bank_account_submissions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(160), nullable=False)
+    state = db.Column(db.String(100), nullable=False)
+    organization = db.Column(db.String(160), nullable=False)
+    bank_name = db.Column(db.String(120), nullable=False)
+    account_name = db.Column(db.String(160), nullable=False)
+    account_number_encrypted = db.Column(db.Text, nullable=False)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=utc_now,
+        nullable=False,
+    )

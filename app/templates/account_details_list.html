@@ -10,8 +10,9 @@
         <table>
             <thead>
                 <tr>
-                    <th>Participant ID</th>
-                    <th>Participant</th>
+                    <th>Full Name</th>
+                    <th>State</th>
+                    <th>Organization</th>
                     <th>Bank</th>
                     <th>Account Name</th>
                     <th>Account Number</th>
@@ -21,8 +22,9 @@
             <tbody>
                 {% for item in submissions %}
                 <tr>
-                    <td>{{ item.participant_code }}</td>
                     <td>{{ item.full_name }}</td>
+                    <td>{{ item.state }}</td>
+                    <td>{{ item.organization }}</td>
                     <td>{{ item.bank_name }}</td>
                     <td>{{ item.account_name }}</td>
                     <td>{{ item.account_number }}</td>
